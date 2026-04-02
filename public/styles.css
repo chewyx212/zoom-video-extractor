@@ -1,0 +1,254 @@
+:root {
+  --bg: #f4efe7;
+  --surface: rgba(255, 252, 247, 0.74);
+  --surface-strong: rgba(255, 252, 247, 0.92);
+  --text: #1f1d1a;
+  --muted: #625a50;
+  --line: rgba(31, 29, 26, 0.12);
+  --accent: #d65a31;
+  --accent-deep: #aa4322;
+  --success: #2d7a53;
+  --error: #bb3f2f;
+  --shadow: 0 24px 80px rgba(53, 39, 27, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(214, 90, 49, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(79, 123, 91, 0.16), transparent 26%),
+    linear-gradient(180deg, #f8f3ec 0%, var(--bg) 100%);
+}
+
+body {
+  animation: page-enter 500ms ease-out;
+}
+
+.shell {
+  width: min(1100px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 48px 0 56px;
+}
+
+.hero {
+  max-width: 720px;
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--accent-deep);
+}
+
+.hero h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.lede {
+  max-width: 640px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.panel-head {
+  margin-bottom: 22px;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.panel-head p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+form.panel {
+  padding: 28px;
+}
+
+.field {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  border: 1px solid rgba(31, 29, 26, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 0.98rem;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: rgba(214, 90, 49, 0.5);
+  box-shadow: 0 0 0 4px rgba(214, 90, 49, 0.12);
+  transform: translateY(-1px);
+}
+
+button[type="submit"] {
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--accent) 0%, #ef8f62 100%);
+  color: #fffaf5;
+  font-size: 0.98rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  box-shadow: 0 14px 34px rgba(214, 90, 49, 0.28);
+}
+
+button[type="submit"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button[type="submit"]:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.status-column {
+  display: grid;
+  gap: 22px;
+}
+
+.status-panel,
+.downloads-panel {
+  padding: 24px;
+}
+
+.status {
+  min-height: 120px;
+  border-radius: 22px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(31, 29, 26, 0.08);
+  color: var(--muted);
+  line-height: 1.6;
+  transition: transform 200ms ease, border-color 200ms ease;
+}
+
+.status.busy {
+  color: var(--text);
+  border-color: rgba(214, 90, 49, 0.24);
+  transform: translateY(-2px);
+}
+
+.status.success {
+  color: var(--success);
+  border-color: rgba(45, 122, 83, 0.28);
+}
+
+.status.error {
+  color: var(--error);
+  border-color: rgba(187, 63, 47, 0.26);
+}
+
+.downloads-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.downloads-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(31, 29, 26, 0.08);
+}
+
+.downloads-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.downloads-list strong {
+  display: block;
+  font-size: 0.96rem;
+}
+
+.downloads-list span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+code {
+  font-family: "SFMono-Regular", "Menlo", monospace;
+  font-size: 0.92em;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .shell {
+    width: min(100% - 24px, 1100px);
+    padding-top: 28px;
+  }
+
+  form.panel,
+  .status-panel,
+  .downloads-panel {
+    padding: 22px;
+  }
+}

@@ -3,9 +3,7 @@
 
 const { program } = require('commander');
 const path = require('path');
-const { BrowserLaunchError, ZoomExtractionError, extractVideoUrls } = require('./browser');
-const { downloadVideo } = require('./downloader');
-const { isValidZoomShareUrl, generateFilename } = require('./utils');
+const { AppValidationError, BrowserLaunchError, ZoomExtractionError, downloadRecording } = require('./app');
 
 program
   .name('zoom-dl')
@@ -27,20 +25,23 @@ const opts = program.opts();
 async function main() {
   const { url, password, output, headless, browserPath } = opts;
 
-  if (!isValidZoomShareUrl(url)) {
-    console.error('Error: URL does not look like a Zoom recording share link.');
-    console.error('Expected format: https://zoom.us/rec/share/... or https://us06web.zoom.us/rec/share/...');
-    process.exit(1);
-  }
-
   console.log(`\nZoom Video Extractor`);
   console.log(`URL: ${url}`);
   console.log(`Output: ${path.resolve(output)}\n`);
-
-  let result;
   try {
-    result = await extractVideoUrls(url, password, { headless, browserPath });
+    const result = await downloadRecording({ url, password, output, headless, browserPath });
+    console.log(`\nSaved ${result.savedFiles.length} file(s):`);
+    for (const file of result.savedFiles) {
+      console.log(`- ${file.outputPath}`);
+    }
+    console.log('\nDone.');
   } catch (err) {
+    if (err instanceof AppValidationError) {
+      console.error(`\n${err.message}`);
+      console.error('Expected format: https://zoom.us/rec/share/... or https://us06web.zoom.us/rec/share/...');
+      process.exit(1);
+    }
+
     if (err instanceof BrowserLaunchError) {
       console.error('\nFailed to start a browser for Zoom extraction.');
       console.error(err.message);
@@ -63,34 +64,6 @@ async function main() {
     console.error('Try running with --no-headless to inspect the Zoom page.');
     process.exit(1);
   }
-
-  const { videos, headers } = result;
-
-  if (videos.length === 0) {
-    console.error('\nNo downloadable video URLs found.');
-    console.error('Suggestions:');
-    console.error('  - Run with --no-headless to visually inspect the Zoom player');
-    console.error('  - Try a known-good Chrome with --browser-path or PUPPETEER_EXECUTABLE_PATH');
-    console.error('  - Zoom may have changed the player structure or require account login');
-    process.exit(1);
-  }
-
-  console.log(`\nFound ${videos.length} video(s). Starting download...\n`);
-
-  for (let i = 0; i < videos.length; i++) {
-    const { url: videoUrl, type } = videos[i];
-    const filename = generateFilename(videoUrl, i, type);
-    const outputPath = path.join(output, filename);
-
-    console.log(`[${i + 1}/${videos.length}] ${filename}`);
-    try {
-      await downloadVideo(videoUrl, outputPath, headers);
-    } catch (err) {
-      console.error(`  Failed to download: ${err.message}`);
-    }
-  }
-
-  console.log('\nDone.');
 }
 
 main();
