@@ -13,7 +13,8 @@
         <h1>Paste a Zoom recording link and save it in one step.</h1>
         <p class="lede">
           This runs on your machine, uses the same verified downloader logic as the CLI,
-          and writes the file into your local <code>downloads</code> folder.
+          keeps a copy in the app <code>downloads</code> folder, and can hand the finished file
+          back to Chrome so it lands in your normal browser Downloads folder too.
         </p>
       </section>
 
@@ -81,7 +82,7 @@
           <section class="panel downloads-panel">
             <div class="panel-head">
               <h2>Recent Files</h2>
-              <p>Files currently found in the local <code>downloads</code> folder.</p>
+              <p>Files currently stored by the app, with a browser download link for each one.</p>
             </div>
             <ul id="downloads-list" class="downloads-list"></ul>
           </section>

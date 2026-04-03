@@ -22,24 +22,57 @@ function updateStatus(message, tone = 'idle') {
   statusNode.textContent = message;
 }
 
+function createDownloadLink(file) {
+  const link = document.createElement('a');
+  link.className = 'download-link';
+  link.href = file.downloadUrl;
+  link.download = file.name || file.filename;
+  link.textContent = 'Download to browser';
+  return link;
+}
+
 function renderDownloads(downloads) {
   downloadsList.innerHTML = '';
 
   if (!downloads.length) {
     const empty = document.createElement('li');
-    empty.innerHTML = '<strong>No downloads yet.</strong><span>Your saved videos will appear here.</span>';
+    const title = document.createElement('strong');
+    const note = document.createElement('span');
+    title.textContent = 'No downloads yet.';
+    note.textContent = 'Your saved videos will appear here.';
+    empty.append(title, note);
     downloadsList.appendChild(empty);
     return;
   }
 
   for (const file of downloads) {
     const item = document.createElement('li');
-    item.innerHTML = `
-      <strong>${file.name}</strong>
-      <span>${formatBytes(file.sizeBytes)} • ${new Date(file.modifiedAt).toLocaleString()}</span>
-      <span>${file.path}</span>
-    `;
+    const title = document.createElement('strong');
+    const meta = document.createElement('span');
+    const pathNode = document.createElement('span');
+
+    title.textContent = file.name;
+    meta.textContent = `${formatBytes(file.sizeBytes)} • ${new Date(file.modifiedAt).toLocaleString()}`;
+    pathNode.textContent = `Stored on server: ${file.serverPath}`;
+
+    item.append(title, meta, pathNode, createDownloadLink(file));
     downloadsList.appendChild(item);
+  }
+}
+
+function triggerBrowserDownloads(files) {
+  for (const file of files) {
+    if (!file.downloadUrl) {
+      continue;
+    }
+
+    const link = document.createElement('a');
+    link.href = file.downloadUrl;
+    link.download = file.filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 }
 
@@ -61,7 +94,7 @@ form.addEventListener('submit', async event => {
   };
 
   submitButton.disabled = true;
-  updateStatus('Working through the Zoom page and downloading your file. Keep this tab open.', 'busy');
+  updateStatus('Working through the Zoom page and preparing a browser download. Keep this tab open.', 'busy');
 
   try {
     const response = await fetch('/api/download', {
@@ -77,8 +110,11 @@ form.addEventListener('submit', async event => {
       throw new Error(result.error || 'Download failed.');
     }
 
-    const fileSummary = result.files.map(file => file.outputPath).join('\n');
-    updateStatus(`${result.message}\n${fileSummary}`, 'success');
+    triggerBrowserDownloads(result.files || []);
+    updateStatus(
+      `${result.message}\nChrome should now save a copy into its default Downloads folder as well.`,
+      'success'
+    );
     renderDownloads(result.downloads || []);
     form.reset();
   } catch (error) {

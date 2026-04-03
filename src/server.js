@@ -5,29 +5,39 @@ const path = require('path');
 const express = require('express');
 const { AppValidationError, BrowserLaunchError, ZoomExtractionError, downloadRecording } = require('./app');
 
-const app = express();
 const publicDir = path.join(__dirname, '..', 'public');
 const defaultDownloadDir = path.join(__dirname, '..', 'downloads');
-const host = process.env.HOST || '0.0.0.0';
-const port = parseInt(process.env.PORT, 10) || 3000;
+const defaultHost = process.env.HOST || '0.0.0.0';
+const defaultPort = parseInt(process.env.PORT, 10) || 3000;
 
-app.use(express.json());
-app.use(express.static(publicDir));
+function resolveDownloadPath(downloadDir, name) {
+  if (!name) {
+    return null;
+  }
 
-function listDownloads() {
-  if (!fs.existsSync(defaultDownloadDir)) {
+  const normalizedName = path.basename(name);
+  if (!normalizedName || normalizedName === '.' || normalizedName !== name) {
+    return null;
+  }
+
+  return path.join(downloadDir, normalizedName);
+}
+
+function listDownloads(downloadDir = defaultDownloadDir) {
+  if (!fs.existsSync(downloadDir)) {
     return [];
   }
 
   return fs
-    .readdirSync(defaultDownloadDir)
+    .readdirSync(downloadDir)
     .filter(name => /\.(mp4|m4v|mov|m3u8)$/i.test(name))
     .map(name => {
-      const fullPath = path.join(defaultDownloadDir, name);
+      const fullPath = path.join(downloadDir, name);
       const stats = fs.statSync(fullPath);
       return {
         name,
-        path: fullPath,
+        serverPath: fullPath,
+        downloadUrl: `/downloads/${encodeURIComponent(name)}`,
         sizeBytes: stats.size,
         modifiedAt: stats.mtime.toISOString(),
       };
@@ -35,48 +45,89 @@ function listDownloads() {
     .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
 }
 
-app.get('/api/downloads', (_req, res) => {
-  res.json({ downloads: listDownloads() });
-});
+function createApp({ downloadDir = defaultDownloadDir } = {}) {
+  const app = express();
 
-app.post('/api/download', async (req, res) => {
-  try {
-    const { url, password, filename, browserPath } = req.body || {};
+  app.use(express.json());
+  app.use(express.static(publicDir));
 
-    const result = await downloadRecording({
-      url,
-      password,
-      filename,
-      browserPath,
-      output: defaultDownloadDir,
-      headless: true,
-    });
+  app.get('/api/downloads', (_req, res) => {
+    res.json({ downloads: listDownloads(downloadDir) });
+  });
 
-    res.json({
-      ok: true,
-      message: `Saved ${result.savedFiles.length} file(s) to ${result.outputDir}.`,
-      files: result.savedFiles,
-      downloads: listDownloads(),
-    });
-  } catch (err) {
-    const status =
-      err instanceof AppValidationError ||
-      err instanceof BrowserLaunchError ||
-      err instanceof ZoomExtractionError
-        ? 400
-        : 500;
+  app.get('/downloads/:name', (req, res) => {
+    const fullPath = resolveDownloadPath(downloadDir, req.params.name);
+    if (!fullPath || !fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+      res.status(404).json({ ok: false, error: 'Requested file was not found.' });
+      return;
+    }
 
-    res.status(status).json({
-      ok: false,
-      error: err.message || 'Unexpected download failure.',
-    });
-  }
-});
+    res.download(fullPath, path.basename(fullPath));
+  });
 
-app.use((_req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
-});
+  app.post('/api/download', async (req, res) => {
+    try {
+      const { url, password, filename, browserPath } = req.body || {};
 
-app.listen(port, host, () => {
-  console.log(`Zoom downloader UI running on ${host}:${port}`);
-});
+      const result = await downloadRecording({
+        url,
+        password,
+        filename,
+        browserPath,
+        output: downloadDir,
+        headless: true,
+      });
+
+      const downloads = listDownloads(downloadDir);
+      const files = result.savedFiles.map(file => ({
+        filename: file.filename,
+        outputPath: file.outputPath,
+        sourceUrl: file.sourceUrl,
+        downloadUrl: `/downloads/${encodeURIComponent(file.filename)}`,
+      }));
+
+      res.json({
+        ok: true,
+        message: `Saved ${result.savedFiles.length} file(s) to ${result.outputDir}.`,
+        files,
+        downloads,
+      });
+    } catch (err) {
+      const status =
+        err instanceof AppValidationError ||
+        err instanceof BrowserLaunchError ||
+        err instanceof ZoomExtractionError
+          ? 400
+          : 500;
+
+      res.status(status).json({
+        ok: false,
+        error: err.message || 'Unexpected download failure.',
+      });
+    }
+  });
+
+  app.use((_req, res) => {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+
+  return app;
+}
+
+function startServer({ host = defaultHost, port = defaultPort, downloadDir = defaultDownloadDir } = {}) {
+  const app = createApp({ downloadDir });
+  return app.listen(port, host, () => {
+    console.log(`Zoom downloader UI running on ${host}:${port}`);
+  });
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = {
+  createApp,
+  listDownloads,
+  resolveDownloadPath,
+  startServer,
+};
